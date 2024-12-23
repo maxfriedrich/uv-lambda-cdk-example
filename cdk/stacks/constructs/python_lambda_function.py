@@ -109,7 +109,7 @@ class PythonLambdaFunction(aws_lambda.Function):
         ensure_kwarg_value("architecture", ARCHITECTURE.lambda_architecture)
 
         try:
-            cache_dir = run_command(["uv", "cache", "dir"]).stdout.decode().strip()
+            cache_dir = run_command(["uv", "cache", "dir"], env=os.environ).stdout.decode().strip()
             volumes = [DockerVolume(container_path="/opt/uv-cache", host_path=cache_dir)]
             log(package_name, "mounting cache dir", cache_dir)
         except (RuntimeError, FileNotFoundError):
