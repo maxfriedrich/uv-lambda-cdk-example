@@ -1,0 +1,11 @@
+[project]
+name = "demo-common"
+version = "0.1.0"
+requires-python = ">=3.11"
+dependencies = [
+    "orjson>=3.10.12",
+]
+
+[build-system]
+requires = ["hatchling"]
+build-backend = "hatchling.build"
