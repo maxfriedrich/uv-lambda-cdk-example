@@ -180,9 +180,9 @@ class UvLocalBundling:
                 architecture=ARCHITECTURE,
                 python_version=PYTHON_VERSION,
             )
-            run_command(command, env=env)
+            run_command(command, env={**os.environ, **env})
         except RuntimeError as e:
-            log("Local bundling failed:", e)
+            log(self.package_name, "Local bundling failed:", e)
             return False
 
         return True
