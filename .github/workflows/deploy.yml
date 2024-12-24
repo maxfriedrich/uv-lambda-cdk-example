@@ -30,3 +30,5 @@ jobs:
         aws-region: ${{ vars.AWS_REGION }}
     - name: CDK deploy
       run: cd cdk && uv run cdk deploy --all --require-approval never
+    - name: Smoke test
+      run: uv run smoke_test.py

@@ -1,4 +1,4 @@
-from aws_cdk import Stack, aws_ssm
+from aws_cdk import Stack, CfnOutput
 from constructs import Construct
 
 from stacks.constructs.python_lambda_function import PythonLambdaFunction
@@ -15,9 +15,4 @@ class Lambda2Stack(Stack):
             handler="demo_lambda2.lambda_function.lambda_handler",
         )
         url = function.add_function_url()
-        aws_ssm.StringParameter(
-            self,
-            "Lambda2Url",
-            parameter_name="/demo/lambda2/url",
-            string_value=url.to_string(),
-        )
+        CfnOutput(self, "LambdaFunctionUrl", value=url)
