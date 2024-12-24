@@ -4,10 +4,6 @@ on:
   push:
     branches: [ "ci" ]
 
-env:
-  AWS_REGION: "eu-central-1"
-  AWS_ACCOUNT_ID: 715841341716
-
 permissions:
   contents: read
   id-token: write
