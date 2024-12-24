@@ -1,0 +1,34 @@
+name: Deploy
+
+on:
+  push:
+    branches: [ "main" ]
+
+permissions:
+  contents: read
+  id-token: write
+
+jobs:
+  deploy:
+
+    runs-on: ubuntu-latest
+
+    steps:
+    - uses: actions/checkout@v4
+    - name: Set up Python
+      uses: actions/setup-python@v5
+      with:
+        python-version-file: ".python-version"
+    - name: Set up uv
+      uses: astral-sh/setup-uv@v5
+    - name: Install dependencies
+      run: uv sync --all-packages && npm install -g aws-cdk@2.159.1
+    - name: Configure AWS Credentials
+      uses: aws-actions/configure-aws-credentials@v4.0.2
+      with:
+        role-to-assume: arn:aws:iam::${{ vars.AWS_ACCOUNT_ID }}:role/GitHubActionsDeployment
+        aws-region: ${{ vars.AWS_REGION }}
+    - name: CDK deploy
+      run: cd cdk && uv run cdk deploy --all --require-approval never
+    - name: Integration test
+      run: uv run integration_test.py

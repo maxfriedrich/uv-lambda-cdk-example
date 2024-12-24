@@ -1,12 +1,15 @@
 [project]
 name = "uv-cdk-demo"
 version = "0.1.0"
+dependencies = []
 
 [tool.uv.workspace]
 members = ["packages/*", "cdk"]
 
 [dependency-groups]
 dev = [
+    "boto3>=1.34.162",
+    "requests>=2.32.3",
     "ruff>=0.8.4",
 ]
 
