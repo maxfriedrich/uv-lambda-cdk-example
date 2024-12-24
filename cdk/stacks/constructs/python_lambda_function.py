@@ -37,7 +37,7 @@ ARCHITECTURE = architectures["x86_64"]
 # Lambda function. We currently provide the image with sha to ensure the correct platform is used
 # because the platform=... value we provide is ignored by CDK: https://github.com/aws/aws-cdk/issues/30239
 # When this is fixed, we can use a tag like uv:python{PYTHON_VERSION}-... instead and replace the
-# hard-coded ARCHITECTURE and PYTHON_VERSION with dynamic
+# hard-coded ARCHITECTURE and PYTHON_VERSION with dynamic values
 #
 # To find a tag:
 # https://github.com/astral-sh/uv/pkgs/container/uv/320975267?tag=python3.11-bookworm-slim -> OS/Arch -> pick same as above
