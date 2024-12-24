@@ -16,4 +16,4 @@ class Lambda1Stack(Stack):
         )
         url = function.add_function_url()
 
-        CfnOutput(self, "LambdaFunctionUrl", value=url)
+        CfnOutput(self, "LambdaFunctionUrl", value=url.url)

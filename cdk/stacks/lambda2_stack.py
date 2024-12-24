@@ -15,4 +15,4 @@ class Lambda2Stack(Stack):
             handler="demo_lambda2.lambda_function.lambda_handler",
         )
         url = function.add_function_url()
-        CfnOutput(self, "LambdaFunctionUrl", value=url)
+        CfnOutput(self, "LambdaFunctionUrl", value=url.url)
