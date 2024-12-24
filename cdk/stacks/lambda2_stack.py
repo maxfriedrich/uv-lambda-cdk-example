@@ -1,4 +1,4 @@
-from aws_cdk import Stack, CfnOutput
+from aws_cdk import CfnOutput, Stack
 from constructs import Construct
 
 from stacks.constructs.python_lambda_function import PythonLambdaFunction
