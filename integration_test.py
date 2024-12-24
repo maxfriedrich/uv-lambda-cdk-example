@@ -26,7 +26,10 @@ def call_function_url(url, credentials):
 
 def test_lambda1(cf_client, credentials):
     url = get_lambda_url(cf_client, 1)
+    print(url)
     response = call_function_url(url, credentials)
+    print(response)
+    print(response.text)
     assert response.status_code == 200
     assert response.json() == "Hello from Lambda with orjson! Common value: 123"
 
