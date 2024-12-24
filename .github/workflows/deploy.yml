@@ -1,13 +1,16 @@
-name: Main
+name: Deploy
 
 on:
   push:
-    branches: [ "main" ]
-  pull_request:
-    branches: [ "main" ]
+    branches: [ "ci" ]
+
+env:
+  AWS_REGION: "eu-central-1"
+  AWS_ACCOUNT_ID: 715841341716
 
 permissions:
   contents: read
+  id-token: write
 
 jobs:
   build:
@@ -24,6 +27,10 @@ jobs:
       uses: astral-sh/setup-uv@v5
     - name: Install dependencies
       run: uv sync --all-packages && npm install -g aws-cdk@2.159.1
-    - name: CDK synth
+    - name: Configure AWS Credentials
+      uses: aws-actions/configure-aws-credentials@v4.0.2
+      with:
+        role-to-assume: arn:aws:iam::${{ env.AWS_ACCOUNT_ID }}:role/GitHubActionsDeployment
+        aws-region: ${{ env.AWS_REGION }}
+    - name: CDK deploy
       run: cd cdk && uv run cdk deploy --require-approval never
-    
