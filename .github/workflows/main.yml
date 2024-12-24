@@ -6,8 +6,12 @@ on:
   pull_request:
     branches: [ "main" ]
 
+env:
+  AWS_REGION: "eu-central-1"
+
 permissions:
   contents: read
+  id-token: write
 
 jobs:
   build:
@@ -28,6 +32,10 @@ jobs:
       run: uv run ruff format --check
     - name: Run linter
       run: uv run ruff check
-    - name: CDK synth
-      run: cd cdk && uv run cdk synth
-    
+    - name: Configure AWS Credentials
+      uses: aws-actions/configure-aws-credentials@v4.0.2
+      with:
+        role-to-assume: GitHubActionsDeployment
+        aws-region: ${{ env.AWS_REGION }}
+    - name: CDK diff
+      run: cd cdk && uv run cdk diff
