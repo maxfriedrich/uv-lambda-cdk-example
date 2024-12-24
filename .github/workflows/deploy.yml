@@ -1,0 +1,29 @@
+name: Main
+
+on:
+  push:
+    branches: [ "main" ]
+  pull_request:
+    branches: [ "main" ]
+
+permissions:
+  contents: read
+
+jobs:
+  build:
+
+    runs-on: ubuntu-latest
+
+    steps:
+    - uses: actions/checkout@v4
+    - name: Set up Python
+      uses: actions/setup-python@v5
+      with:
+        python-version-file: ".python-version"
+    - name: Set up uv
+      uses: astral-sh/setup-uv@v5
+    - name: Install dependencies
+      run: uv sync --all-packages && npm install -g aws-cdk@2.159.1
+    - name: CDK synth
+      run: cd cdk && uv run cdk deploy --require-approval never
+    
