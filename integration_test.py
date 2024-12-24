@@ -24,21 +24,11 @@ def call_function_url(url, credentials):
     )
 
 
-def test_lambda1(cf_client, credentials):
-    url = get_lambda_url(cf_client, 1)
-    print(url)
-    response = call_function_url(url, credentials)
-    print(response)
-    print(response.text)
-    assert response.status_code == 200
-    assert response.json() == "Hello from Lambda with orjson! Common value: 123"
-
-
-def test_lambda2(cf_client, credentials):
-    url = get_lambda_url(cf_client, 2)
+def test_lambda(n, expected, cf_client, credentials):
+    url = get_lambda_url(cf_client, n)
     response = call_function_url(url, credentials)
     assert response.status_code == 200
-    assert response.json() == "Hello from Lambda with stdlib json!"
+    assert response.json() == expected
 
 
 def main():
@@ -47,9 +37,9 @@ def main():
     credentials = session.get_credentials().get_frozen_credentials()
 
     print("Calling Lambda 1...")
-    test_lambda1(cf_client, credentials)
+    test_lambda(1, "Hello from Lambda with orjson! Common value: 123", cf_client, credentials)
     print("Calling Lambda 2...")
-    test_lambda2(cf_client, credentials)
+    test_lambda(2, "Hello from Lambda with stdlib json!", cf_client, credentials)
     print("Test successful!")
 
 
