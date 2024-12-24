@@ -34,7 +34,7 @@ PYTHON_VERSION = LAMBDA_RUNTIME.name.removeprefix("python")
 ARCHITECTURE = architectures["x86_64"]
 
 # The Docker image used for bundling, needs to have the same Python version and platform as the
-# Lambda function. We currently need to the image with sha to ensure the correct platform is used
+# Lambda function. We currently provide the image with sha to ensure the correct platform is used
 # because the platform=... value we provide is ignored by CDK: https://github.com/aws/aws-cdk/issues/30239
 # When this is fixed, we can use a tag like uv:python{PYTHON_VERSION}-... instead and replace the
 # hard-coded ARCHITECTURE and PYTHON_VERSION with dynamic
