@@ -21,7 +21,7 @@ GitHub Actions integration:
         ]
     }
     ```
-  - AWSCloudFormationReadOnlyAccess (to read the function URLs from CfnOutput)
+  - AWSCloudFormationReadOnlyAccess (to read the function URLs from CfnOutput for testing)
   - invoke-function-url (to call the functions for testing):
     ```json
     {
