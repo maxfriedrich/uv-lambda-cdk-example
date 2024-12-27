@@ -1,18 +1,20 @@
 # Example for Python Lambda Functions in CDK with uv
 
-This repo shows how we build reproducible (byte-for-byte + same CDK asset hash) AWS Lambda .zips with uv.
+This repo shows how we build reproducible (byte-for-byte + same CDK asset hash) AWS Lambda .zips from packages in a [uv workspace](https://docs.astral.sh/uv/concepts/projects/workspaces/).
 
 ## Run locally
 
-Build asset directories:
+Build asset directories (does not require an AWS account):
 
 ```bash
 cd cdk
 uv run cdk synth
 # find the assets in cdk/cdk.out
+uv run cdk synth
+# no new assets should be added
 ```
 
-Deploy and check reproducibility:
+Deploy:
 
 ```bash
 cd cdk
