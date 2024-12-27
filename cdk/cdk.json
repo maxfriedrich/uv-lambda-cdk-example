@@ -11,6 +11,7 @@
       "source.bat",
       "**/__init__.py",
       "**/__pycache__",
+      "cdk.out",
       "tests"
     ]
   },

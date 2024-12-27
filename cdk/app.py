@@ -1,11 +1,45 @@
 #!/usr/bin/env python3
 
-import aws_cdk as cdk
-from lambda1_stack import Lambda1Stack
-from lambda2_stack import Lambda2Stack
+import aws_cdk
+from aws_cdk import CfnOutput, Stack
+from constructs import Construct
+from python_lambda_function import PythonLambdaFunction
 
-app = cdk.App()
-Lambda1Stack(app, "Lambda1Stack")
-Lambda2Stack(app, "Lambda2Stack")
+
+class LambdaStack(Stack):
+    def __init__(
+        self,
+        scope: Construct,
+        construct_id: str,
+        function_id: str,
+        package_name: str,
+        handler: str,
+        **kwargs,
+    ) -> None:
+        super().__init__(scope, construct_id, **kwargs)
+
+        function = PythonLambdaFunction(
+            self, function_id, package_name=package_name, handler=handler
+        )
+        url = function.add_function_url()
+
+        CfnOutput(self, "LambdaFunctionUrl", value=url.url)
+
+
+app = aws_cdk.App()
+LambdaStack(
+    app,
+    "Lambda1Stack",
+    function_id="Lambda1",
+    package_name="demo-lambda1",
+    handler="demo_lambda1.lambda_function.lambda_handler",
+)
+LambdaStack(
+    app,
+    "Lambda2Stack",
+    function_id="Lambda2",
+    package_name="demo-lambda2",
+    handler="demo_lambda2.lambda_function.lambda_handler",
+)
 
 app.synth()
