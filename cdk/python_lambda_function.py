@@ -113,10 +113,8 @@ class PythonLambdaFunction(aws_lambda.Function):
     ):
         module_name = package_name.replace("-", "_")
         handler = handler or f"{module_name}.lambda_function.lambda_handler"
-        print(architecture.name)
 
         if bundling_docker_image is None:
-            print(runtime.name, architecture.name)
             # Use the default image and check if the other args match
             def ensure_value(argument_name, actual, expected):
                 assert (
@@ -130,7 +128,6 @@ class PythonLambdaFunction(aws_lambda.Function):
             platform_architecture = DEFAULT_PLATFORM_ARCHITECTURE
             bundling_docker_image = DEFAULT_BUNDLING_DOCKER_IMAGE
         else:
-            print("using provided")
             # Use the provided image and don't check the other args
             if "@" not in bundling_docker_image:
                 log(
