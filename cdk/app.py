@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 
 import aws_cdk
-from aws_cdk import CfnOutput, Stack
+from aws_cdk import CfnOutput, Stack, aws_lambda
 from constructs import Construct
 from python_lambda_function import PythonLambdaFunction
 
@@ -16,10 +16,10 @@ class LambdaStack(Stack):
         handler: str,
         **kwargs,
     ) -> None:
-        super().__init__(scope, construct_id, **kwargs)
+        super().__init__(scope, construct_id)
 
         function = PythonLambdaFunction(
-            self, function_id, package_name=package_name, handler=handler
+            self, function_id, package_name=package_name, handler=handler, **kwargs
         )
         url = function.add_function_url()
 
@@ -40,6 +40,9 @@ LambdaStack(
     function_id="Lambda2",
     package_name="demo-lambda2",
     handler="demo_lambda2.lambda_function.lambda_handler",
+    architecture=aws_lambda.Architecture.ARM_64,
+    runtime=aws_lambda.Runtime.PYTHON_3_11,
+    bundling_docker_image="ghcr.io/astral-sh/uv:0.5.13-python3.11-bookworm-slim@sha256:ae750423ff9f89955c254c149ea31a274a40ae8c9b2e64ab3a13b59551faf496",
 )
 
 app.synth()
