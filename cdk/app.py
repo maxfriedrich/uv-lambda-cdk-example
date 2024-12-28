@@ -40,9 +40,9 @@ LambdaStack(
     function_id="Lambda2",
     package_name="demo-lambda2",
     handler="demo_lambda2.lambda_function.lambda_handler",
-    architecture=aws_lambda.Architecture.ARM_64,
+    architecture=aws_lambda.Architecture.X86_64,
     runtime=aws_lambda.Runtime.PYTHON_3_11,
-    bundling_docker_image="ghcr.io/astral-sh/uv:0.5.13-python3.11-bookworm-slim@sha256:ae750423ff9f89955c254c149ea31a274a40ae8c9b2e64ab3a13b59551faf496",
+    bundling_docker_image="ghcr.io/astral-sh/uv:0.5.13-python3.11-bookworm-slim@sha256:dc0c70e35f899c69cfe3674afac6186b210373d19d7ed77fd8ab1bdc45f8bf15",
 )
 
 app.synth()
