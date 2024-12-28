@@ -20,7 +20,7 @@ Deploy:
 cd cdk
 export AWS_PROFILE=... # or configure AWS account in some other way
 uv run cdk bootstrap
-uv run cdk deploy
+uv run cdk deploy --all
 uv run cdk diff
 # the diff should now show 0 differences, no need to re-deploy
 ```
