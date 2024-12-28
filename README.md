@@ -54,7 +54,7 @@ uv run integration_test.py
     }
     ```
   - AWSCloudFormationReadOnlyAccess (to read the function URLs from CfnOutput for testing)
-  - invoke-function-url (to call the functions for testing):
+  - invoke-function (to call the functions for testing, constrain the resource if needed):
     ```json
     {
         "Version": "2012-10-17",
@@ -62,7 +62,7 @@ uv run integration_test.py
             {
                 "Effect": "Allow",
                 "Action": [
-                    "lambda:InvokeFunctionUrl"
+                    "lambda:InvokeFunction"
                 ],
                 "Resource": [
                     "*"

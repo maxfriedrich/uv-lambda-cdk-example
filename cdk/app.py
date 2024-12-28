@@ -21,9 +21,8 @@ class LambdaStack(Stack):
         function = PythonLambdaFunction(
             self, function_id, package_name=package_name, handler=handler, **kwargs
         )
-        url = function.add_function_url()
 
-        CfnOutput(self, "LambdaFunctionUrl", value=url.url)
+        CfnOutput(self, "LambdaFunctionArn", value=function.function_arn)
 
 
 app = aws_cdk.App()
