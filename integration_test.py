@@ -39,7 +39,7 @@ def main():
     print("Calling Lambda 1...")
     test_lambda(1, "Hello from Lambda with orjson! Common value: 123", cf_client, credentials)
     print("Calling Lambda 2...")
-    test_lambda(2, "Hello from Lambda with stdlib json!", cf_client, credentials)
+    test_lambda(2, "Hello from Lambda with stdlib json and pydantic!", cf_client, credentials)
     print("Test successful!")
 
 
