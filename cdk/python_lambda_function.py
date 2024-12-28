@@ -32,6 +32,7 @@ PLATFORM_ARCHITECTURES = {
     ),
 }
 
+
 def python_version_from_runtime(runtime: aws_lambda.Runtime) -> str:
     return runtime.name.removeprefix("python")
 
