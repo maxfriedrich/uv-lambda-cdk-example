@@ -39,8 +39,8 @@ def python_version_from_runtime(runtime: aws_lambda.Runtime) -> str:
 
 DEFAULT_LAMBDA_RUNTIME = aws_lambda.Runtime.PYTHON_3_11
 DEFAULT_PYTHON_VERSION = python_version_from_runtime(DEFAULT_LAMBDA_RUNTIME)
-DEFAULT_ARCHITECTURE = aws_lambda.Architecture.X86_64
-DEFAULT_PLATFORM_ARCHITECTURE = PLATFORM_ARCHITECTURES[DEFAULT_ARCHITECTURE.name]
+DEFAULT_LAMBDA_ARCHITECTURE = aws_lambda.Architecture.X86_64
+DEFAULT_PLATFORM_ARCHITECTURE = PLATFORM_ARCHITECTURES[DEFAULT_LAMBDA_ARCHITECTURE.name]
 
 # The Docker image used for bundling, needs to have the same Python version and platform as the
 # Lambda function. We currently provide the image with sha to ensure the correct platform is used
@@ -106,8 +106,8 @@ class PythonLambdaFunction(aws_lambda.Function):
         package_name: str,
         path: str,
         handler: str | None = None,
-        runtime: aws_lambda.Runtime = aws_lambda.Runtime.PYTHON_3_11,
-        architecture: aws_lambda.Architecture = aws_lambda.Architecture.X86_64,
+        runtime: aws_lambda.Runtime = DEFAULT_LAMBDA_RUNTIME,
+        architecture: aws_lambda.Architecture = DEFAULT_LAMBDA_ARCHITECTURE,
         bundling_docker_image: str | None = None,
         **kwargs,
     ):
@@ -123,7 +123,7 @@ class PythonLambdaFunction(aws_lambda.Function):
             ensure_kwarg_value("runtime", DEFAULT_LAMBDA_RUNTIME)
             runtime = DEFAULT_LAMBDA_RUNTIME
             python_version = DEFAULT_PYTHON_VERSION
-            ensure_kwarg_value("architecture", DEFAULT_ARCHITECTURE)
+            ensure_kwarg_value("architecture", DEFAULT_LAMBDA_ARCHITECTURE)
             platform_architecture = DEFAULT_PLATFORM_ARCHITECTURE
             bundling_docker_image = DEFAULT_BUNDLING_DOCKER_IMAGE
         else:
