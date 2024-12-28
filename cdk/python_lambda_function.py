@@ -39,7 +39,8 @@ def python_version_from_runtime(runtime: aws_lambda.Runtime) -> str:
 
 DEFAULT_LAMBDA_RUNTIME = aws_lambda.Runtime.PYTHON_3_11
 DEFAULT_PYTHON_VERSION = python_version_from_runtime(DEFAULT_LAMBDA_RUNTIME)
-DEFAULT_ARCHITECTURE = PLATFORM_ARCHITECTURES[aws_lambda.Architecture.X86_64.name]
+DEFAULT_ARCHITECTURE = aws_lambda.Architecture.X86_64
+DEFAULT_PLATFORM_ARCHITECTURE = PLATFORM_ARCHITECTURES[DEFAULT_ARCHITECTURE.name]
 
 # The Docker image used for bundling, needs to have the same Python version and platform as the
 # Lambda function. We currently provide the image with sha to ensure the correct platform is used
@@ -103,23 +104,18 @@ class PythonLambdaFunction(aws_lambda.Function):
         scope: Construct,
         construct_id: str,
         package_name: str,
+        path: str,
         handler: str | None = None,
-        runtime: aws_lambda.Runtime | None = aws_lambda.Runtime.PYTHON_3_11,
-        architecture: aws_lambda.Architecture | None = aws_lambda.Architecture.X86_64,
+        runtime: aws_lambda.Runtime = aws_lambda.Runtime.PYTHON_3_11,
+        architecture: aws_lambda.Architecture = aws_lambda.Architecture.X86_64,
         bundling_docker_image: str | None = None,
         **kwargs,
     ):
         module_name = package_name.replace("-", "_")
         handler = handler or f"{module_name}.lambda_function.lambda_handler"
 
-        if bundling_docker_image:
-            assert (
-                "@" in bundling_docker_image
-            ), "Please provide the Docker image with a hash to ensure the correct platform is used"
-            platform_architecture = PLATFORM_ARCHITECTURES[architecture.name]
-            python_version = python_version_from_runtime(runtime)
-        else:
-            # Use the hardcoded image and check if the args match
+        if bundling_docker_image is None:
+            # Use the default image and check if the other args match
             def ensure_kwarg_value(kwarg, expected):
                 if actual := kwargs.pop(kwarg, None):
                     assert actual.name == expected.name, f"Only {expected.name} is supported"
@@ -127,9 +123,18 @@ class PythonLambdaFunction(aws_lambda.Function):
             ensure_kwarg_value("runtime", DEFAULT_LAMBDA_RUNTIME)
             runtime = DEFAULT_LAMBDA_RUNTIME
             python_version = DEFAULT_PYTHON_VERSION
-            ensure_kwarg_value("architecture", DEFAULT_ARCHITECTURE.lambda_architecture)
-            platform_architecture = DEFAULT_ARCHITECTURE
+            ensure_kwarg_value("architecture", DEFAULT_ARCHITECTURE)
+            platform_architecture = DEFAULT_PLATFORM_ARCHITECTURE
             bundling_docker_image = DEFAULT_BUNDLING_DOCKER_IMAGE
+        else:
+            # Use the provided image and don't check the other args
+            if "@" not in bundling_docker_image:
+                log(
+                    package_name,
+                    "Docker image was not provided with hash, incorrect platform may be used...",
+                )
+            platform_architecture = PLATFORM_ARCHITECTURES[architecture.name]
+            python_version = python_version_from_runtime(runtime)
 
         try:
             cache_dir = run_command(["uv", "cache", "dir"], env=os.environ).stdout.decode().strip()
@@ -150,8 +155,8 @@ class PythonLambdaFunction(aws_lambda.Function):
             scope,
             construct_id,
             code=aws_lambda.Code.from_asset(
-                "..",
-                asset_hash_type=AssetHashType.OUTPUT,  # decide hash based on output (default: based on input "..")
+                path,
+                asset_hash_type=AssetHashType.OUTPUT,  # decide hash based on output (default: based on input)
                 bundling=BundlingOptions(
                     image=DockerImage.from_registry(bundling_docker_image),
                     environment={
