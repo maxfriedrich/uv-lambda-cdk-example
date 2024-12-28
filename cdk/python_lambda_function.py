@@ -113,20 +113,24 @@ class PythonLambdaFunction(aws_lambda.Function):
     ):
         module_name = package_name.replace("-", "_")
         handler = handler or f"{module_name}.lambda_function.lambda_handler"
+        print(architecture.name)
 
         if bundling_docker_image is None:
+            print(runtime.name, architecture.name)
             # Use the default image and check if the other args match
-            def ensure_kwarg_value(kwarg, expected):
-                if actual := kwargs.pop(kwarg, None):
-                    assert actual.name == expected.name, f"Only {expected.name} is supported"
+            def ensure_value(argument_name, actual, expected):
+                assert (
+                    actual.name == expected.name
+                ), f"Only {argument_name}={expected.name} is supported with the default bundling image, got {actual.name}"
 
-            ensure_kwarg_value("runtime", DEFAULT_LAMBDA_RUNTIME)
+            ensure_value("runtime", runtime, DEFAULT_LAMBDA_RUNTIME)
             runtime = DEFAULT_LAMBDA_RUNTIME
             python_version = DEFAULT_PYTHON_VERSION
-            ensure_kwarg_value("architecture", DEFAULT_LAMBDA_ARCHITECTURE)
+            ensure_value("architecture", architecture, DEFAULT_LAMBDA_ARCHITECTURE)
             platform_architecture = DEFAULT_PLATFORM_ARCHITECTURE
             bundling_docker_image = DEFAULT_BUNDLING_DOCKER_IMAGE
         else:
+            print("using provided")
             # Use the provided image and don't check the other args
             if "@" not in bundling_docker_image:
                 log(
@@ -139,7 +143,7 @@ class PythonLambdaFunction(aws_lambda.Function):
         try:
             cache_dir = run_command(["uv", "cache", "dir"], env=os.environ).stdout.decode().strip()
             volumes = [DockerVolume(container_path="/opt/uv-cache", host_path=cache_dir)]
-            log(package_name, "mounting cache dir", cache_dir)
+            log(package_name, "found uv cache dir", cache_dir)
         except (RuntimeError, FileNotFoundError):
             log(package_name, "Local uv could not be found, not using cache dir mount...")
             volumes = None
