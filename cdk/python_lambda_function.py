@@ -17,17 +17,17 @@ from aws_cdk import (
 from constructs import Construct
 
 
-class PlatformArchitecture(NamedTuple):
+class _Architecture(NamedTuple):
     lambda_architecture: aws_lambda.Architecture
     platform_machine: str
     docker_architecture: str
 
 
-PLATFORM_ARCHITECTURES = {
-    aws_lambda.Architecture.X86_64.name: PlatformArchitecture(
+_ARCHITECTURES = {
+    aws_lambda.Architecture.X86_64.name: _Architecture(
         aws_lambda.Architecture.X86_64, "x86_64", "amd64"
     ),
-    aws_lambda.Architecture.ARM_64.name: PlatformArchitecture(
+    aws_lambda.Architecture.ARM_64.name: _Architecture(
         aws_lambda.Architecture.ARM_64, "aarch64", "arm64"
     ),
 }
@@ -40,7 +40,7 @@ def python_version_from_runtime(runtime: aws_lambda.Runtime) -> str:
 DEFAULT_LAMBDA_RUNTIME = aws_lambda.Runtime.PYTHON_3_11
 DEFAULT_PYTHON_VERSION = python_version_from_runtime(DEFAULT_LAMBDA_RUNTIME)
 DEFAULT_LAMBDA_ARCHITECTURE = aws_lambda.Architecture.X86_64
-DEFAULT_PLATFORM_ARCHITECTURE = PLATFORM_ARCHITECTURES[DEFAULT_LAMBDA_ARCHITECTURE.name]
+DEFAULT_ARCHITECTURE = _ARCHITECTURES[DEFAULT_LAMBDA_ARCHITECTURE.name]
 
 # The Docker image used for bundling, needs to have the same Python version and platform as the
 # Lambda function. We currently provide the image with sha to ensure the correct platform is used
@@ -66,7 +66,7 @@ def run_command(args, env=None):
 def build_asset_command_and_env(
     package_name: str,
     output_path: str,
-    platform_architecture: PlatformArchitecture,
+    architecture: _Architecture,
     python_version: str,
 ) -> tuple[list[str], dict[str, str]]:
     # Always use the same path per package to ensure that paths in the output are stable
@@ -74,9 +74,7 @@ def build_asset_command_and_env(
 
     commands = [
         # Ensure we are on the correct architecture
-        '[ "$(uname -m)" = {architecture} ]'.format(
-            architecture=platform_architecture.platform_machine
-        ),
+        '[ "$(uname -m)" = {architecture} ]'.format(architecture=architecture.platform_machine),
         # Create a virtual environment with the package's dependencies
         "uv sync --package {package_name} --frozen --no-dev --no-editable --compile-bytecode --python {python_version}".format(
             package_name=shlex.quote(package_name), python_version=python_version
@@ -125,7 +123,7 @@ class PythonLambdaFunction(aws_lambda.Function):
             runtime = DEFAULT_LAMBDA_RUNTIME
             python_version = DEFAULT_PYTHON_VERSION
             ensure_value("architecture", architecture, DEFAULT_LAMBDA_ARCHITECTURE)
-            platform_architecture = DEFAULT_PLATFORM_ARCHITECTURE
+            architecture = DEFAULT_ARCHITECTURE
             bundling_docker_image = DEFAULT_BUNDLING_DOCKER_IMAGE
         else:
             # Use the provided image and don't check the other args
@@ -134,7 +132,7 @@ class PythonLambdaFunction(aws_lambda.Function):
                     package_name,
                     "Docker image was not provided with hash, incorrect platform may be used...",
                 )
-            platform_architecture = PLATFORM_ARCHITECTURES[architecture.name]
+            architecture = _ARCHITECTURES[architecture.name]
             python_version = python_version_from_runtime(runtime)
 
         try:
@@ -148,7 +146,7 @@ class PythonLambdaFunction(aws_lambda.Function):
         command, env = build_asset_command_and_env(
             package_name,
             output_path="/asset-output",
-            platform_architecture=platform_architecture,
+            architecture=architecture,
             python_version=python_version,
         )
 
@@ -168,36 +166,31 @@ class PythonLambdaFunction(aws_lambda.Function):
                     command=command,
                     # The platform we provide here is ignored by CDK https://github.com/aws/aws-cdk/issues/30239
                     # See BUNDLING_DOCKER_IMAGE comment on top
-                    platform=platform_architecture.docker_architecture,
-                    local=UvLocalBundling(package_name, platform_architecture, python_version),
+                    platform=architecture.docker_architecture,
+                    local=_UvLocalBundling(package_name, architecture, python_version),
                 ),
             ),
             handler=handler,
             runtime=runtime,
-            architecture=platform_architecture.lambda_architecture,
+            architecture=architecture.lambda_architecture,
             **kwargs,
         )
 
 
 @jsii.implements(ILocalBundling)
-class UvLocalBundling:
-    def __init__(
-        self, package_name: str, platform_architecture: PlatformArchitecture, python_version: str
-    ) -> None:
+class _UvLocalBundling:
+    def __init__(self, package_name: str, architecture: _Architecture, python_version: str) -> None:
         self.package_name = package_name
-        self.platform_architecture = platform_architecture
+        self.architecture = architecture
         self.python_version = python_version
         super().__init__()
 
     def try_bundle(self, output_dir: str, *args, **kwargs) -> bool:
         # Only allow bundling on Linux with the same platform as the Lambda function
-        if (
-            sys.platform != "linux"
-            or platform.machine() != self.platform_architecture.platform_machine
-        ):
+        if sys.platform != "linux" or platform.machine() != self.architecture.platform_machine:
             log(
                 self.package_name,
-                f"Local bundling is only supported on {self.platform_architecture.platform_machine} Linux, using Docker bundling instead...",
+                f"Local bundling is only supported on {self.architecture.platform_machine} Linux, using Docker bundling instead...",
             )
             return False
 
@@ -213,7 +206,7 @@ class UvLocalBundling:
             command, env = build_asset_command_and_env(
                 self.package_name,
                 output_path=output_dir,
-                platform_architecture=self.platform_architecture,
+                architecture=self.architecture,
                 python_version=self.python_version,
             )
             run_command(command, env={**os.environ, **env})
