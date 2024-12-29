@@ -32,7 +32,7 @@ LambdaStack(
     handler="demo_lambda2.lambda_function.lambda_handler",
     architecture=aws_lambda.Architecture.X86_64,
     runtime=aws_lambda.Runtime.PYTHON_3_11,
-    bundling_docker_image="ghcr.io/astral-sh/uv:0.5.13-python3.11-bookworm-slim@sha256:dc0c70e35f899c69cfe3674afac6186b210373d19d7ed77fd8ab1bdc45f8bf15",
+    bundling_docker_image="ghcr.io/astral-sh/uv:0.5.12-python3.11-bookworm@sha256:45635c2745b29dfbdeed1c6152f97c9042dd84b6eca8a8da61799afa9266d787",
 )
 
 app.synth()

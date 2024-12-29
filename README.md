@@ -31,7 +31,7 @@ Call the Lambda functions:
 
 ```bash
 export AWS_PROFILE=... # or configure AWS account in some other way
-uv run integration_test.py
+uv run pytest tests -m integration
 ```
 
 ## GitHub Actions integration
