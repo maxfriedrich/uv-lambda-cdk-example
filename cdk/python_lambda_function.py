@@ -111,9 +111,12 @@ class PythonLambdaFunction(aws_lambda.Function):
     ):
         module_name = package_name.replace("-", "_")
         handler = handler or f"{module_name}.lambda_function.lambda_handler"
+        lambda_architecture = architecture
+
+        architecture: _Architecture
 
         if bundling_docker_image is None:
-            # Use the default image and check if the other args match
+            # Use the default image and check if the other args match because the image has a specific platform
             def ensure_value(argument_name, actual, expected):
                 assert (
                     actual.name == expected.name
@@ -122,7 +125,7 @@ class PythonLambdaFunction(aws_lambda.Function):
             ensure_value("runtime", runtime, DEFAULT_LAMBDA_RUNTIME)
             runtime = DEFAULT_LAMBDA_RUNTIME
             python_version = DEFAULT_PYTHON_VERSION
-            ensure_value("architecture", architecture, DEFAULT_LAMBDA_ARCHITECTURE)
+            ensure_value("architecture", lambda_architecture, DEFAULT_LAMBDA_ARCHITECTURE)
             architecture = DEFAULT_ARCHITECTURE
             bundling_docker_image = DEFAULT_BUNDLING_DOCKER_IMAGE
         else:
@@ -132,7 +135,7 @@ class PythonLambdaFunction(aws_lambda.Function):
                     package_name,
                     "Docker image was not provided with hash, incorrect platform may be used...",
                 )
-            architecture = _ARCHITECTURES[architecture.name]
+            architecture = _ARCHITECTURES[lambda_architecture.name]
             python_version = python_version_from_runtime(runtime)
 
         try:
