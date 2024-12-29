@@ -31,6 +31,6 @@ jobs:
         role-to-assume: arn:aws:iam::${{ vars.AWS_ACCOUNT_ID }}:role/GitHubActionsDeployment
         aws-region: ${{ vars.AWS_REGION }}
     - name: CDK deploy
-      run: cd cdk && uv run cdk deploy --all --require-approval never
+      run: cd cdk && uv run cdk deploy --all --require-approval never --concurrency 4
     - name: Integration test
-      run: uv run integration_test.py
+      run: uv run pytest tests -m integration
