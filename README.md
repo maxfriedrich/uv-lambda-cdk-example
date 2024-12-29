@@ -4,6 +4,8 @@ This repo shows how we build reproducible (byte-for-byte + same CDK asset hash) 
 
 ## Run locally
 
+Make sure CDK (aws-cdk) is installed.
+
 Build asset directories (does not require an AWS account):
 
 ```bash
