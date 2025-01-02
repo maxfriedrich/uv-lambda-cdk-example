@@ -2,6 +2,8 @@
 
 This repo shows how we build reproducible (byte-for-byte + same CDK asset hash) AWS Lambda .zips from packages in a [uv workspace](https://docs.astral.sh/uv/concepts/projects/workspaces/).
 
+Motivation and how and why it works is described in this post: https://maxfriedrich.de/2025/01/02/uv-lambda-cdk/
+
 ## Run locally
 
 Make sure CDK (aws-cdk) is installed.
