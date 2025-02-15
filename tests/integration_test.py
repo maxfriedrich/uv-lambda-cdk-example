@@ -32,6 +32,7 @@ def call_function(lambda_client, arn):
     [
         ("Lambda1Stack", "Hello from Lambda with orjson! Common value: 123"),
         ("Lambda2Stack", "Hello from Lambda with stdlib json and pydantic!"),
+        ("DockerLambda1Stack", "Hello from Lambda with orjson! Common value: 123"),
     ],
 )
 @pytest.mark.integration

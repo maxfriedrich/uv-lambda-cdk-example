@@ -1,6 +1,7 @@
 import os
 import platform
 import shlex
+import shutil
 import subprocess
 import sys
 from typing import NamedTuple
@@ -12,6 +13,7 @@ from aws_cdk import (
     DockerImage,
     DockerVolume,
     ILocalBundling,
+    aws_ecr_assets,
     aws_lambda,
 )
 from constructs import Construct
@@ -21,14 +23,15 @@ class _Architecture(NamedTuple):
     lambda_architecture: aws_lambda.Architecture
     platform_machine: str
     docker_architecture: str
+    ecr_platform: aws_ecr_assets.Platform
 
 
 _ARCHITECTURES = {
     aws_lambda.Architecture.X86_64.name: _Architecture(
-        aws_lambda.Architecture.X86_64, "x86_64", "amd64"
+        aws_lambda.Architecture.X86_64, "x86_64", "amd64", aws_ecr_assets.Platform.LINUX_AMD64
     ),
     aws_lambda.Architecture.ARM_64.name: _Architecture(
-        aws_lambda.Architecture.ARM_64, "aarch64", "arm64"
+        aws_lambda.Architecture.ARM_64, "aarch64", "arm64", aws_ecr_assets.Platform.LINUX_ARM64
     ),
 }
 
@@ -96,6 +99,86 @@ def build_asset_command_and_env(
     return command, env
 
 
+def validate_python_lambda_args(
+    runtime: aws_lambda.Runtime,
+    architecture: aws_lambda.Architecture,
+    bundling_docker_image: str | None,
+    package_name: str,
+):
+    def ensure_value(argument_name, actual, expected):
+        assert (
+            actual.name == expected.name
+        ), f"Only {argument_name}={expected.name} is supported with the default bundling image, got {actual.name}"
+
+    lambda_architecture = architecture
+
+    if bundling_docker_image is None:
+        # Use the default image and check if the other args match because the image has a specific platform
+
+        ensure_value("runtime", runtime, DEFAULT_LAMBDA_RUNTIME)
+        runtime = DEFAULT_LAMBDA_RUNTIME
+        python_version = DEFAULT_PYTHON_VERSION
+        ensure_value("architecture", lambda_architecture, DEFAULT_LAMBDA_ARCHITECTURE)
+        architecture = DEFAULT_ARCHITECTURE
+        bundling_docker_image = DEFAULT_BUNDLING_DOCKER_IMAGE
+    else:
+        # Use the provided image and don't check the other args
+        if "@" not in bundling_docker_image:
+            log(
+                package_name,
+                "Docker image was not provided with hash, incorrect platform may be used...",
+            )
+        architecture = _ARCHITECTURES[lambda_architecture.name]
+        python_version = python_version_from_runtime(runtime)
+
+    return runtime, architecture, bundling_docker_image, python_version
+
+
+def python_lambda_code(
+    path: str,
+    package_name: str,
+    handler: str | None,
+    architecture: _Architecture,
+    bundling_docker_image: str,
+    python_version: str,
+) -> aws_lambda.AssetCode:
+    module_name = package_name.replace("-", "_")
+    handler = handler or f"{module_name}.lambda_function.lambda_handler"
+
+    try:
+        cache_dir = run_command(["uv", "cache", "dir"], env=os.environ).stdout.decode().strip()
+        volumes = [DockerVolume(container_path="/opt/uv-cache", host_path=cache_dir)]
+        log(package_name, "found uv cache dir", cache_dir)
+    except (RuntimeError, FileNotFoundError):
+        log(package_name, "Local uv could not be found, not using cache dir mount...")
+        volumes = None
+
+    command, env = build_asset_command_and_env(
+        package_name,
+        output_path="/asset-output",
+        architecture=architecture,
+        python_version=python_version,
+    )
+
+    return aws_lambda.Code.from_asset(
+        path,
+        asset_hash_type=AssetHashType.OUTPUT,  # decide hash based on output (default: based on input)
+        bundling=BundlingOptions(
+            image=DockerImage.from_registry(bundling_docker_image),
+            environment={
+                **env,
+                "UV_CACHE_DIR": "/opt/uv-cache/",
+            },
+            volumes=volumes,
+            command=command,
+            # The platform we provide here is ignored by CDK https://github.com/aws/aws-cdk/issues/30239
+            # See BUNDLING_DOCKER_IMAGE comment on top
+            platform=architecture.docker_architecture,
+            local=_UvLocalBundling(package_name, architecture, python_version),
+        ),
+    )
+
+
 class PythonLambdaFunction(aws_lambda.Function):
     def __init__(
         self,
@@ -109,69 +192,19 @@ class PythonLambdaFunction(aws_lambda.Function):
         bundling_docker_image: str | None = None,
         **kwargs,
     ):
-        module_name = package_name.replace("-", "_")
-        handler = handler or f"{module_name}.lambda_function.lambda_handler"
-        lambda_architecture = architecture
-
-        architecture: _Architecture
-
-        if bundling_docker_image is None:
-            # Use the default image and check if the other args match because the image has a specific platform
-            def ensure_value(argument_name, actual, expected):
-                assert (
-                    actual.name == expected.name
-                ), f"Only {argument_name}={expected.name} is supported with the default bundling image, got {actual.name}"
-
-            ensure_value("runtime", runtime, DEFAULT_LAMBDA_RUNTIME)
-            runtime = DEFAULT_LAMBDA_RUNTIME
-            python_version = DEFAULT_PYTHON_VERSION
-            ensure_value("architecture", lambda_architecture, DEFAULT_LAMBDA_ARCHITECTURE)
-            architecture = DEFAULT_ARCHITECTURE
-            bundling_docker_image = DEFAULT_BUNDLING_DOCKER_IMAGE
-        else:
-            # Use the provided image and don't check the other args
-            if "@" not in bundling_docker_image:
-                log(
-                    package_name,
-                    "Docker image was not provided with hash, incorrect platform may be used...",
-                )
-            architecture = _ARCHITECTURES[lambda_architecture.name]
-            python_version = python_version_from_runtime(runtime)
-
-        try:
-            cache_dir = run_command(["uv", "cache", "dir"], env=os.environ).stdout.decode().strip()
-            volumes = [DockerVolume(container_path="/opt/uv-cache", host_path=cache_dir)]
-            log(package_name, "found uv cache dir", cache_dir)
-        except (RuntimeError, FileNotFoundError):
-            log(package_name, "Local uv could not be found, not using cache dir mount...")
-            volumes = None
-
-        command, env = build_asset_command_and_env(
-            package_name,
-            output_path="/asset-output",
-            architecture=architecture,
-            python_version=python_version,
+        runtime, architecture, bundling_docker_image, python_version = validate_python_lambda_args(
+            runtime, architecture, bundling_docker_image, package_name
         )
-
         super().__init__(
             scope,
             construct_id,
-            code=aws_lambda.Code.from_asset(
+            code=python_lambda_code(
                 path,
-                asset_hash_type=AssetHashType.OUTPUT,  # decide hash based on output (default: based on input)
-                bundling=BundlingOptions(
-                    image=DockerImage.from_registry(bundling_docker_image),
-                    environment={
-                        **env,
-                        "UV_CACHE_DIR": "/opt/uv-cache/",
-                    },
-                    volumes=volumes,
-                    command=command,
-                    # The platform we provide here is ignored by CDK https://github.com/aws/aws-cdk/issues/30239
-                    # See BUNDLING_DOCKER_IMAGE comment on top
-                    platform=architecture.docker_architecture,
-                    local=_UvLocalBundling(package_name, architecture, python_version),
-                ),
+                package_name,
+                handler=handler,
+                architecture=architecture,
+                bundling_docker_image=bundling_docker_image,
+                python_version=python_version,
             ),
             handler=handler,
             runtime=runtime,
@@ -218,3 +251,79 @@ class _UvLocalBundling:
             return False
 
         return True
+
+
+def python_docker_lambda_code(
+    scope: Construct,
+    package_name: str,
+    path: str,
+    dockerfile: str,
+    handler: str | None,
+    architecture: _Architecture,
+    bundling_docker_image: str | None,
+    python_version: str,
+) -> aws_lambda.AssetImageCode:
+    lambda_code = python_lambda_code(
+        path, package_name, handler, architecture, bundling_docker_image, python_version
+    )
+    asset_scope = Construct(scope, f"{package_name}Asset")
+    asset = lambda_code.bind(asset_scope)
+    asset_dir = os.path.join(
+        "cdk.out", f"asset.{asset.s3_location.object_key.removesuffix('.zip')}"
+    )
+    if not os.path.exists(asset_dir):
+        print("Asset directory does not exist. This should only happen on CDK destroy")
+        os.makedirs(asset_dir)
+
+    work_dir = asset_dir + "-docker"
+    shutil.rmtree(work_dir, ignore_errors=True)
+    shutil.copytree(asset_dir, work_dir)
+
+    shutil.copy(dockerfile, work_dir)
+    with open(os.path.join(work_dir, ".dockerignore"), "w") as f:
+        f.write("Dockerfile\n.dockerignore\n")
+
+    return aws_lambda.Code.from_asset_image(
+        cmd=[handler],
+        directory=work_dir,
+        asset_name=package_name,
+        build_args={"PYTHON_VERSION": python_version},
+        platform=architecture.ecr_platform,
+    )
+
+
+class PythonDockerLambdaFunction(aws_lambda.Function):
+    def __init__(
+        self,
+        scope: Construct,
+        construct_id: str,
+        package_name: str,
+        path: str,
+        dockerfile: str,
+        handler: str | None = None,
+        runtime: aws_lambda.Runtime = DEFAULT_LAMBDA_RUNTIME,
+        architecture: aws_lambda.Architecture = DEFAULT_LAMBDA_ARCHITECTURE,
+        bundling_docker_image: str | None = None,
+        **kwargs,
+    ):
+        runtime, architecture, bundling_docker_image, python_version = validate_python_lambda_args(
+            runtime, architecture, bundling_docker_image, package_name
+        )
+
+        super().__init__(
+            scope,
+            construct_id,
+            runtime=aws_lambda.Runtime.FROM_IMAGE,
+            handler=aws_lambda.Handler.FROM_IMAGE,
+            code=python_docker_lambda_code(
+                scope,
+                package_name,
+                path=path,
+                dockerfile=dockerfile,
+                handler=handler,
+                architecture=architecture,
+                bundling_docker_image=bundling_docker_image,
+                python_version=python_version,
+            ),
+            **kwargs,
+        )
