@@ -98,6 +98,7 @@ def build_asset_command_and_env(
     }
     return command, env
 
+
 def validate_python_lambda_args(
     runtime: aws_lambda.Runtime,
     architecture: aws_lambda.Architecture,

@@ -13,12 +13,14 @@ class LambdaStack(Stack):
         function = PythonLambdaFunction(self, function_id, **kwargs)
         CfnOutput(self, "LambdaFunctionArn", value=function.function_arn)
 
+
 class DockerLambdaStack(Stack):
     def __init__(self, scope: Construct, construct_id: str, function_id: str, **kwargs) -> None:
         super().__init__(scope, construct_id)
 
         function = PythonDockerLambdaFunction(self, function_id, **kwargs)
         CfnOutput(self, "LambdaFunctionArn", value=function.function_arn)
+
 
 app = aws_cdk.App()
 LambdaStack(
